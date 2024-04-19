@@ -4,6 +4,83 @@ import java.util.List;
 public class Graph {
     private List<Node> nodes = new ArrayList<Node>();
     private List<Edge> edges = new ArrayList<Edge>();
+
+    public int calculatePath(int p1, int p2){
+        if (getNode(p1) != null && getNode(p2) != null) {
+            for (Node i : nodes) {
+                i.path = Integer.MAX_VALUE;
+            }
+
+            List<Node> unchecked = new ArrayList<Node>(nodes);
+            List<Node> checked = new ArrayList<Node>();
+            List<Edge> connections = new ArrayList<Edge>();
+
+            Node current = getNode(p1);
+            Node next = null;
+            int lightestEdge = Integer.MAX_VALUE;
+
+            while (!unchecked.isEmpty()) {
+                if (current.id == p1) {
+                    current.path = 0;
+                }
+                checked.add(current);
+                unchecked.remove(current);
+                connections = getEdges(current.id);
+                for (Edge i : connections) {
+                    if (i.v1 == current) {
+                        if (!checked.contains(i)) {
+                            if (i.weight < lightestEdge) {
+                                lightestEdge = i.weight;
+                                next = i.v2;
+                            }
+                        }
+                        if (current.path + i.weight < i.v2.path) {
+                            i.v2.path = current.path + i.weight;
+                        }
+                    } else {
+                        if (!checked.contains(i)) {
+                            if (i.weight < lightestEdge) {
+                                lightestEdge = i.weight;
+                                next = i.v1;
+                            }
+                        }
+                        if (current.path + i.weight < i.v1.path) {
+                            i.v1.path = current.path + i.weight;
+                        }
+                    }
+                }
+                if (next == null || next == current) {
+                    Node potentialCurrent = null;
+                    for (Node i : unchecked) {
+                        if (potentialCurrent == null) {
+                            potentialCurrent = i;
+                        } else if (i.path < potentialCurrent.path) {
+                            potentialCurrent = i;
+                        }
+                    }
+                    if (potentialCurrent.path == Integer.MAX_VALUE) {
+                        break;
+                    } else {
+                        current = potentialCurrent;
+                    }
+                } else {
+                    next.previous = current;
+                    current = next;
+                }
+            }
+
+            if (getNode(p2).path == Integer.MAX_VALUE) {
+                System.out.println("[Graph] Path not found. Equals: ∞");
+            } else {
+                System.out.println("[Graph] Path equals: " + getNode(p2).path);
+            }
+            return getNode(p2).path;
+        }else {
+            System.out.println("[Graph] Error! Wrong points!");
+            return 0;
+        }
+    }
+
     public void addNode(int id){
         if (getNode(id) == null){
             nodes.add(new Node(id));
