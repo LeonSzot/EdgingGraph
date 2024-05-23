@@ -1,133 +1,174 @@
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class Graph {
     private List<Node> nodes = new ArrayList<Node>();
     private List<Edge> edges = new ArrayList<Edge>();
 
-    public int calculatePath(int p1, int p2){
-        if (getNode(p1) != null && getNode(p2) != null) {
-            for (Node i : nodes) {
-                i.path = Integer.MAX_VALUE;
+    public List<Edge> minimalSpanningTreeKruskal() {
+        List<Edge> mst = new ArrayList<>();
+        List<List<Node>> sets = new ArrayList<>();
+
+        for (Node node : nodes) {
+            List<Node> set = new ArrayList<>();
+            set.add(node);
+            sets.add(set);
+        }
+
+        edges.sort(Comparator.comparingInt(edge -> edge.weight));
+
+        for (Edge edge : edges) {
+            Node v1 = edge.v1;
+            Node v2 = edge.v2;
+
+            List<Node> set1 = findSet(sets, v1);
+            List<Node> set2 = findSet(sets, v2);
+
+            if (set1 != set2) {
+                mst.add(edge);
+                set1.addAll(set2);
+                sets.remove(set2);
+            }
+        }
+
+        return mst;
+    }
+
+    public int minimalSpanningTreeKruskalWeight(){
+        List<Edge> minimalSpanningTree = new ArrayList<>();
+        minimalSpanningTree = minimalSpanningTreeKruskal();
+        int weight = 0;
+
+        for (int i = 0; i < minimalSpanningTree.size(); i++){
+            weight += minimalSpanningTree.get(i).weight;
+        }
+
+        return weight;
+    }
+
+    private List<Node> findSet(List<List<Node>> sets, Node node) {
+        for (List<Node> set : sets) {
+            if (set.contains(node)) {
+                return set;
+            }
+        }
+        return null;
+    }
+
+    public int countNodes(){
+        return nodes.size();
+    }
+
+    public int countEdges(){
+        return edges.size();
+    }
+
+    public int shortestPath(int startNodeID, int destinationNodeID){
+        Node startNode = getNode(startNodeID);
+        Node endNode = getNode(destinationNodeID);
+
+        if (startNode != null && endNode != null) {
+            for (Node node : nodes) {
+                node.pathCost = Integer.MAX_VALUE;
+                node.previousNode = null;
             }
 
-            List<Node> unchecked = new ArrayList<Node>(nodes);
-            List<Node> checked = new ArrayList<Node>();
-            List<Edge> connections = new ArrayList<Edge>();
+            startNode.pathCost = 0;
 
-            Node current = getNode(p1);
-            Node next = null;
-            int lightestEdge = Integer.MAX_VALUE;
+            List<Node> unvisitedNodes = new ArrayList<>(nodes);
 
-            while (!unchecked.isEmpty()) {
-                if (current.id == p1) {
-                    current.path = 0;
+            while (!unvisitedNodes.isEmpty()) {
+                Node currentNode = getMinimumCostNode(unvisitedNodes);
+
+                if (currentNode.pathCost == Integer.MAX_VALUE) {
+                    break;
                 }
-                checked.add(current);
-                unchecked.remove(current);
-                connections = getEdges(current.id);
-                for (Edge i : connections) {
-                    if (i.v1 == current) {
-                        if (!checked.contains(i)) {
-                            if (i.weight < lightestEdge) {
-                                lightestEdge = i.weight;
-                                next = i.v2;
-                            }
-                        }
-                        if (current.path + i.weight < i.v2.path) {
-                            i.v2.path = current.path + i.weight;
-                        }
-                    } else {
-                        if (!checked.contains(i)) {
-                            if (i.weight < lightestEdge) {
-                                lightestEdge = i.weight;
-                                next = i.v1;
-                            }
-                        }
-                        if (current.path + i.weight < i.v1.path) {
-                            i.v1.path = current.path + i.weight;
-                        }
+
+                unvisitedNodes.remove(currentNode);
+
+                for (Edge edge : getEdges(currentNode.id)) {
+                    Node neighbor = getOtherNode(currentNode, edge);
+                    int newCost = currentNode.pathCost + edge.weight;
+
+                    if (newCost < neighbor.pathCost) {
+                        neighbor.pathCost = newCost;
+                        neighbor.previousNode = currentNode;
                     }
-                }
-                if (next == null || next == current) {
-                    Node potentialCurrent = null;
-                    for (Node i : unchecked) {
-                        if (potentialCurrent == null) {
-                            potentialCurrent = i;
-                        } else if (i.path < potentialCurrent.path) {
-                            potentialCurrent = i;
-                        }
-                    }
-                    if (potentialCurrent.path == Integer.MAX_VALUE) {
-                        break;
-                    } else {
-                        current = potentialCurrent;
-                    }
-                } else {
-                    next.previous = current;
-                    current = next;
                 }
             }
 
-            if (getNode(p2).path == Integer.MAX_VALUE) {
-                System.out.println("[Graph] Path not found. Equals: ∞");
-            } else {
-                System.out.println("[Graph] Path equals: " + getNode(p2).path);
+            return endNode.pathCost;
+        }
+
+        return -1;
+    }
+
+    private Node getMinimumCostNode(List<Node> nodes) {
+        Node minNode = null;
+        int minCost = Integer.MAX_VALUE;
+
+        for (Node node : nodes) {
+            if (node.pathCost < minCost) {
+                minCost = node.pathCost;
+                minNode = node;
             }
-            return getNode(p2).path;
-        }else {
-            System.out.println("[Graph] Error! Wrong points!");
-            return 0;
+        }
+
+        return minNode;
+    }
+
+    private Node getOtherNode(Node a, Edge b){
+        if (b.v1 == a){
+            return b.v2;
+        }
+        else{
+            return b.v1;
         }
     }
 
-    public void addNode(int id){
+    public void createNode(int id){
         if (getNode(id) == null){
             nodes.add(new Node(id));
-            System.out.println("[Graph] Added node with id " + id);
+            // System.out.println("[Graph] Added node with id " + id);
         }
         else{
-            System.out.println("[Graph] There already is a node with id " + id);
+            // System.out.println("[Graph] There already is a node with id " + id);
         }
     }
 
     public void createEdge(int id1, int id2, int weight){
         Node v1 = getNode(id1);
         Node v2 = getNode(id2);
-
-        if (v1 != null){
-            if (v2 != null){
-                if (v1!=v2){
-                    if (getEdge(id1, id2) == null && getEdge(id2, id1) == null){
-                        edges.add(new Edge(v1, v2, weight));
-                        System.out.println("[Graph] Added edge with weight " + weight + ", and node ids " + id1 + " and " + id2);
-                    }
-                    else{
-                        System.out.println("[Graph] There already is an edge with ids " + id1 + " and " + id2);
-                    }
+        if (weight >= 0){
+            if (v1 != null){
+                if (v2 != null){
+                    edges.add(new Edge(v1, v2, weight));
+                    // System.out.println("[Graph] Added edge with weight " + weight + ", and node ids " + id1 + " and " + id2);
                 }
                 else{
-                    System.out.println("[Graph] Couldn't create an edge with 2 same nodes");
+                    // System.out.println("[Graph] Couldn't find node with id " + id2);
                 }
             }
             else{
-                System.out.println("[Graph] Couldn't find node with id " + id2);
+                // System.out.println("[Graph] Couldn't find node with id " + id1);
             }
         }
         else{
-            System.out.println("[Graph] Couldn't find node with id " + id1);
+            // System.out.println("[Graph] Weight must be 0 or above");
         }
+
     }
 
     public void removeEdge(int id1, int id2){
         if (getEdge(id1, id2) != null){
             edges.remove(getEdge(id1, id2));
-            System.out.println("[Graph] Removed edge with ids " + id1 + " and " + id2);
-        } else if (getEdge(id2,id1) != null) {
+            // System.out.println("[Graph] Removed edge with ids " + id1 + " and " + id2);
+        }
+        else if (getEdge(id2, id1) != null){
             edges.remove(getEdge(id2, id1));
-            System.out.println("[Graph] Removed edge with ids " + id2 + " and " + id1);
-        } else{
-            System.out.println("[Graph] There is no edge with ids " + id1 + " and " + id2);
+            // System.out.println("[Graph] Removed edge with ids " + id2 + " and " + id1);
+        }
+        else{
+            // System.out.println("[Graph] There is no edge with ids " + id1 + " and " + id2);
         }
     }
 
@@ -140,16 +181,16 @@ public class Graph {
             if (edgesToRemove != null){
                 int i;
                 for (i = 0; i < edgesToRemove.size(); i++){
-                    System.out.println("[Graph] Removed edge with weight " + edgesToRemove.get(i).weight + " and ids " + edgesToRemove.get(i).v1.id + " and " + edgesToRemove.get(i).v2.id);
+                    // System.out.println("[Graph] Removed edge with weight " + edgesToRemove.get(i).weight + " and ids " + edgesToRemove.get(i).v1.id + " and " + edgesToRemove.get(i).v2.id);
                     edges.remove(edgesToRemove.get(i));
                 }
             }
 
             nodes.remove(node);
-            System.out.println("[Graph] Removed node with id " + id);
+            // System.out.println("[Graph] Removed node with id " + id);
         }
         else{
-            System.out.println("[Graph] There is no node with id " + id);
+            // System.out.println("[Graph] There is no node with id " + id);
         }
     }
 
@@ -163,6 +204,7 @@ public class Graph {
             }
         }
 
+        // System.out.println("[Graph] No node found with that id");
         return null;
     }
 
@@ -170,7 +212,7 @@ public class Graph {
         List<Edge> edgesTemp = new ArrayList<Edge>();
 
         if (edges != null){
-            int i = 0;
+            int i;
             for (i = 0; i < edges.size(); i++){
                 if (id == edges.get(i).v1.id || id == edges.get(i).v2.id){
                     edgesTemp.add(edges.get(i));
@@ -184,17 +226,20 @@ public class Graph {
         return edgesTemp;
     }
 
-
-    private Edge getEdge(int id1, int id2){
+    public Edge getEdge(int id1, int id2){
         if (edges != null){
             int i = 0;
             for (i = 0; i < edges.size(); i++){
                 if (id1 == edges.get(i).v1.id && id2 == edges.get(i).v2.id){
                     return edges.get(i);
                 }
+                else if (id2 == edges.get(i).v1.id && id1 == edges.get(i).v2.id){
+                    return edges.get(i);
+                }
             }
         }
 
+        // System.out.println("[Graph] No edge found with that ids");
         return null;
     }
 }
