@@ -4,6 +4,42 @@ public class Graph {
     private List<Node> nodes = new ArrayList<Node>();
     private List<Edge> edges = new ArrayList<Edge>();
 
+    public ArrayList<Edge> primMST(int i) {
+        ArrayList<Edge> mst = new ArrayList<>();
+        if (nodes.isEmpty()) return mst;
+
+        HashMap<Node, Boolean> inMST = new HashMap<>();
+        for (Node node : nodes) {
+            inMST.put(node, false);
+        }
+
+        PriorityQueue<Edge> edgeQueue = new PriorityQueue<>(Comparator.comparingInt(edge -> edge.weight));
+        Node startNode = getNode(i);
+
+        addEdgesToQueue(startNode, edgeQueue, inMST);
+
+        while (!edgeQueue.isEmpty()) {
+            Edge minEdge = edgeQueue.poll();
+            if (!inMST.get(minEdge.v2)) {
+                mst.add(minEdge);
+                addEdgesToQueue(minEdge.v2, edgeQueue, inMST);
+            }
+        }
+
+        return mst;
+    }
+
+    private void addEdgesToQueue(Node node, PriorityQueue<Edge> edgeQueue, HashMap<Node, Boolean> inMST) {
+        inMST.put(node, true);
+        for (Edge edge : edges) {
+            if (edge.v1 == node && !inMST.get(edge.v2)) {
+                edgeQueue.add(edge);
+            } else if (edge.v2 == node && !inMST.get(edge.v1)) {
+                edgeQueue.add(new Edge(edge.v2, edge.v1, edge.weight));
+            }
+        }
+    }
+
     public List<Edge> minimalSpanningTreeKruskal() {
         List<Edge> mst = new ArrayList<>();
         List<List<Node>> sets = new ArrayList<>();
@@ -241,5 +277,48 @@ public class Graph {
 
         // System.out.println("[Graph] No edge found with that ids");
         return null;
+    }
+    // Minimal Chromatic Number
+    public int minimalChromaticNumber(int startNode) {
+        if (nodes.isEmpty()) return 0;
+
+        HashMap<Node, Integer> colorMap = new HashMap<>();
+        colorMap.put(getNode(startNode), 0);
+
+        for (int i = 1; i < nodes.size(); i++) {
+            Node node = nodes.get(i);
+            Set<Integer> usedColors = new HashSet<>();
+            for (Edge edge : edges) {
+                if (edge.v1 == node) {
+                    Node neighbor = edge.v2;
+                    if (colorMap.containsKey(neighbor)) {
+                        usedColors.add(colorMap.get(neighbor));
+                    }
+                } else if (edge.v2 == node) {
+                    Node neighbor = edge.v1;
+                    if (colorMap.containsKey(neighbor)) {
+                        usedColors.add(colorMap.get(neighbor));
+                    }
+                }
+            }
+
+            int cr;
+            for (cr = 0; cr < nodes.size(); cr++) {
+                if (!usedColors.contains(cr)) {
+                    break;
+                }
+            }
+
+            colorMap.put(node, cr);
+        }
+
+        int maxColor = 0;
+        for (int color : colorMap.values()) {
+            if (color > maxColor) {
+                maxColor = color;
+            }
+        }
+
+        return maxColor + 1;
     }
 }
